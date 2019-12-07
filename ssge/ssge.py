@@ -87,8 +87,8 @@ class SSGE:
 
             eigvecs = eigvecs[:, idx_sort]
 
-            self.eigvals = eigvals
-            self.eigvecs = eigvecs
+            self.eigvals = eigvals.real
+            self.eigvecs = eigvecs.real
 
         else:
             raise Exception("Form gram matrix K first")
@@ -168,25 +168,28 @@ class SSGE:
         for i in range(self.num_samples):
             s += self.grad_jth_psi(j, self.X[i, :])
 
-        return -1./self.num_samples * s
+        return (-1./self.num_samples) * s
 
     def gradient_estimate(self, j, x):
         if not 1 <= j <= self.num_samples or not isinstance(j, int):
             raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
 
         g = 0
-        for jj in range(1, j):
-            g += self.jth_beta(j) * self.jth_psi(j, x)
+        for jj in range(1, j+1):
+            b_j = self.jth_beta(jj)
+            psi_j = self.jth_psi(jj, x)
+
+            g += b_j * psi_j
 
         return g
 
 
 if __name__ == '__main__':
-    dim = 5
-    num_samples = 100
+    dim = 3
+    num_samples = 1000
     X = np.random.multivariate_normal(np.zeros(dim),
                                       np.eye(dim),
-                                      100)
+                                      num_samples)
 
 
     print(len(X))
@@ -198,10 +201,11 @@ if __name__ == '__main__':
 
     jth_psi = ssge.jth_psi_factory(1)
     
-    print((jth_psi(x + np.array([0, 1e-6, 0, 0, 0])) - jth_psi(x))/(1e-6))
-
     print(ssge.grad_jth_psi(1, x))
 
     print(ssge.jth_beta(1))
 
+    print(ssge.gradient_estimate(1, x))
     print(ssge.gradient_estimate(10, x))
+    print(ssge.gradient_estimate(30, x))
+    print(ssge.gradient_estimate(100, x))
