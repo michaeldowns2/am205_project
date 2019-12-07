@@ -29,6 +29,7 @@ class SSGE:
         self.K = None
         self.eigvals = None
         self.eigvecs = None
+        self.width = None
 
         self.X = X
 
@@ -42,7 +43,16 @@ class SSGE:
 
         print("Determining mus / psis")
         self.__get_psis_mus()
-        
+
+
+
+    def __dists_to_kvals(self, dists):
+        sq_dists = dists**2
+
+        k_vals = np.exp(-1./(2. * self.width**2) * sq_dists)
+
+        return k_vals
+
 
     def __compute_gram(self):
         """
@@ -52,10 +62,9 @@ class SSGE:
         dists = spsp.distance.pdist(X, 'euclidean')
 
         width = np.median(dists)
+        self.width = width
 
-        sq_dists = dists**2
-
-        k_vals = np.exp(-1./(2.*width**2) * sq_dists)
+        k_vals = self.__dists_to_kvals(dists)
 
         K = np.zeros((self.num_samples,
                       self.num_samples))
@@ -78,8 +87,8 @@ class SSGE:
 
             eigvecs = eigvecs[:, idx_sort]
 
-            self.eigvals = eigvals
-            self.eigvecs = eigvecs
+            self.eigvals = eigvals.real
+            self.eigvecs = eigvecs.real
 
         else:
             raise Exception("Form gram matrix K first")
@@ -94,23 +103,109 @@ class SSGE:
             raise Exception("Compute eigenvalues and eigenvectors of gram matrix first")
 
 
-    def jth_psi(j, x):
-        pass
+
+    def __get_k_vec(self, x):
+        """
+        For a given x, computes all K(x, x_m)
+        """
+
+        dists = spsp.distance.cdist(self.X, x.reshape(1, -1), 'euclidean').flatten()
+        k_vals = self.__dists_to_kvals(dists)
+
+        return k_vals
+
+    def grad_jth_psi(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        broadcasted_subtraction = (x - self.X).T
+
+        k_vals = self.__get_k_vec(x)
+
+        broadcasted_multiplication = k_vals * broadcasted_subtraction
+
+        partials_matrix = -1./self.width**2 * broadcasted_multiplication
+
+        eigvec = self.eigvecs[:, j-1].reshape(-1, 1)
+        eigvalue = self.eigvals[j-1]
+
+        
+        return (np.sqrt(self.num_samples) / eigvalue * (partials_matrix @ eigvec)).flatten()
 
 
-    def jth_psi_factory(j):
-        def jth_psi(x):
-            pass
+    def grad_jth_psi_factory(self, j):
+        def f(x):
+            return self.grad_jth_psi(j, x)
 
+        return f
+
+
+    def jth_psi(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+
+        k_vals = self.__get_k_vec(x)
+
+        eigvec = self.eigvecs[:, j-1].flatten()
+        eigvalue = self.eigvals[j-1]
+
+        return np.sqrt(self.num_samples) / eigvalue * np.dot(eigvec, k_vals)
+        
+
+
+    def jth_psi_factory(self, j):
+        def f(x):
+            return self.jth_psi(j, x)
+
+        return f
+
+    def jth_beta(self, j):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        s = 0
+        for i in range(self.num_samples):
+            s += self.grad_jth_psi(j, self.X[i, :])
+
+        return (-1./self.num_samples) * s
+
+    def gradient_estimate(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        g = 0
+        for jj in range(1, j+1):
+            b_j = self.jth_beta(jj)
+            psi_j = self.jth_psi(jj, x)
+
+            g += b_j * psi_j
+
+        return g
 
 
 if __name__ == '__main__':
-    dim = 5
-    num_samples = 100
+    dim = 3
+    num_samples = 1000
     X = np.random.multivariate_normal(np.zeros(dim),
                                       np.eye(dim),
-                                      100)
+                                      num_samples)
 
 
     print(len(X))
     ssge = SSGE(X)
+
+    x = np.random.randn(dim)
+
+    print(ssge.jth_psi(1, x))
+
+    jth_psi = ssge.jth_psi_factory(1)
+    
+    print(ssge.grad_jth_psi(1, x))
+
+    print(ssge.jth_beta(1))
+
+    print(ssge.gradient_estimate(1, x))
+    print(ssge.gradient_estimate(10, x))
+    print(ssge.gradient_estimate(30, x))
+    print(ssge.gradient_estimate(100, x))
