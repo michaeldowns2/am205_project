@@ -11,8 +11,8 @@ import scipy as sp
 import scipy.spatial as spsp
 
 
-random.seed(205)
-np.random.seed(205)
+#random.seed(205)
+#np.random.seed(205)
 
 def k_rbf_1d(x1, x2, h):
     return np.exp((-1./h) * (x1 - x2) **2)
@@ -23,6 +23,12 @@ def k_rbf_deriv_1d(x1, x2, h):
 def k_rbf(x1, x2, width):
     return np.exp((-1./(2.*width**2)) * np.linalg.norm(x1 - x2, 2)**2 )
 
+
+def normal_log_density(x):
+    return -1./2 * np.log(2*np.pi) - 1./2 * x**2
+
+def normal_score(x):
+    return -1. * x
 
 class SSGE:
     def __init__(self, X, kernel='rbf'):
@@ -185,27 +191,49 @@ class SSGE:
 
 
 if __name__ == '__main__':
-    dim = 3
-    num_samples = 1000
-    X = np.random.multivariate_normal(np.zeros(dim),
-                                      np.eye(dim),
-                                      num_samples)
+    # dim = 3
+    # num_samples = 1000
+    # X = np.random.multivariate_normal(np.zeros(dim),
+    #                                   np.eye(dim),
+    #                                   num_samples)
 
 
-    print(len(X))
+    # print(len(X))
+    # ssge = SSGE(X)
+
+    # x = np.random.randn(dim)
+
+    # print(ssge.jth_psi(1, x))
+
+    # jth_psi = ssge.jth_psi_factory(1)
+    
+    # print(ssge.grad_jth_psi(1, x))
+
+    # print(ssge.jth_beta(1))
+
+    # print(ssge.gradient_estimate(1, x))
+    # print(ssge.gradient_estimate(10, x))
+    # print(ssge.gradient_estimate(30, x))
+    # print(ssge.gradient_estimate(100, x))
+
+    X = np.random.randn(100).reshape(-1, 1)
+    x = np.linspace(-5, 5, 100)
+
     ssge = SSGE(X)
 
-    x = np.random.randn(dim)
+    vals = []
+    for xx in x:
+        vals.append(ssge.gradient_estimate(6, np.array([xx])))
 
-    print(ssge.jth_psi(1, x))
+    print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
 
-    jth_psi = ssge.jth_psi_factory(1)
+    fig, ax = plt.subplots(1,1)
     
-    print(ssge.grad_jth_psi(1, x))
 
-    print(ssge.jth_beta(1))
+    ax.plot(x, normal_log_density(x))
+    ax.plot(x, normal_score(x))
+    ax.plot(x, vals)
+    
 
-    print(ssge.gradient_estimate(1, x))
-    print(ssge.gradient_estimate(10, x))
-    print(ssge.gradient_estimate(30, x))
-    print(ssge.gradient_estimate(100, x))
+    plt.show()
+    plt.close()
