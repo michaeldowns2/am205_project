@@ -29,6 +29,7 @@ class SSGE:
         self.K = None
         self.eigvals = None
         self.eigvecs = None
+        self.width = None
 
         self.X = X
 
@@ -42,7 +43,16 @@ class SSGE:
 
         print("Determining mus / psis")
         self.__get_psis_mus()
-        
+
+
+
+    def __dists_to_kvals(self, dists):
+        sq_dists = dists**2
+
+        k_vals = np.exp(-1./(2. * self.width**2) * sq_dists)
+
+        return k_vals
+
 
     def __compute_gram(self):
         """
@@ -52,10 +62,9 @@ class SSGE:
         dists = spsp.distance.pdist(X, 'euclidean')
 
         width = np.median(dists)
+        self.width = width
 
-        sq_dists = dists**2
-
-        k_vals = np.exp(-1./(2.*width**2) * sq_dists)
+        k_vals = self.__dists_to_kvals(dists)
 
         K = np.zeros((self.num_samples,
                       self.num_samples))
@@ -94,13 +103,37 @@ class SSGE:
             raise Exception("Compute eigenvalues and eigenvectors of gram matrix first")
 
 
-    def jth_psi(j, x):
-        pass
+
+    def __get_k_vec(self, x):
+        """
+        For a given x, computes all K(x, x_m)
+        """
+
+        dists = spsp.distance.cdist(self.X, x.reshape(1, -1), 'euclidean').flatten()
+        k_vals = self.__dists_to_kvals(dists)
+
+        return k_vals
+
+
+    def jth_psi(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+
+        k_vals = self.__get_k_vec(x)
+
+        eigvec = self.eigvecs[:, j-1].flatten()
+        eigvalue = self.eigvals[j-1]
+
+        return np.sqrt(self.num_samples) / eigvalue * np.dot(eigvec, k_vals)
+        
 
 
     def jth_psi_factory(j):
-        def jth_psi(x):
-            pass
+        def f(x):
+            return self.jth_psi(j, x)
+
+        return f
 
 
 
@@ -114,3 +147,8 @@ if __name__ == '__main__':
 
     print(len(X))
     ssge = SSGE(X)
+
+    x = np.random.randn(dim)
+    print(x)
+
+    print(ssge.jth_psi(1, x))
