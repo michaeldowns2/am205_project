@@ -114,6 +114,31 @@ class SSGE:
 
         return k_vals
 
+    def grad_jth_psi(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        broadcasted_subtraction = (x - self.X).T
+
+        k_vals = self.__get_k_vec(x)
+
+        broadcasted_multiplication = k_vals * broadcasted_subtraction
+
+        partials_matrix = -1./self.width**2 * broadcasted_multiplication
+
+        eigvec = self.eigvecs[:, j-1].reshape(-1, 1)
+        eigvalue = self.eigvals[j-1]
+
+        
+        return (np.sqrt(self.num_samples) / eigvalue * (partials_matrix @ eigvec)).flatten()
+
+
+    def grad_jth_psi_factory(self, j):
+        def f(x):
+            return self.grad_jth_psi(j, x)
+
+        return f
+
 
     def jth_psi(self, j, x):
         if not 1 <= j <= self.num_samples or not isinstance(j, int):
@@ -129,12 +154,31 @@ class SSGE:
         
 
 
-    def jth_psi_factory(j):
+    def jth_psi_factory(self, j):
         def f(x):
             return self.jth_psi(j, x)
 
         return f
 
+    def jth_beta(self, j):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        s = 0
+        for i in range(self.num_samples):
+            s += self.grad_jth_psi(j, self.X[i, :])
+
+        return -1./self.num_samples * s
+
+    def gradient_estimate(self, j, x):
+        if not 1 <= j <= self.num_samples or not isinstance(j, int):
+            raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
+
+        g = 0
+        for jj in range(1, j):
+            g += self.jth_beta(j) * self.jth_psi(j, x)
+
+        return g
 
 
 if __name__ == '__main__':
@@ -149,6 +193,15 @@ if __name__ == '__main__':
     ssge = SSGE(X)
 
     x = np.random.randn(dim)
-    print(x)
 
     print(ssge.jth_psi(1, x))
+
+    jth_psi = ssge.jth_psi_factory(1)
+    
+    print((jth_psi(x + np.array([0, 1e-6, 0, 0, 0])) - jth_psi(x))/(1e-6))
+
+    print(ssge.grad_jth_psi(1, x))
+
+    print(ssge.jth_beta(1))
+
+    print(ssge.gradient_estimate(10, x))
