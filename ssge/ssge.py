@@ -86,7 +86,7 @@ class SSGE:
 
 
     def __compute_rbf_width(self):
-        dists = spsp.distance.pdist(X, 'euclidean')
+        dists = spsp.distance.pdist(self.X, 'euclidean')
 
         if self.width is not None:
             return self.width, dists
@@ -126,7 +126,7 @@ class SSGE:
     def __compute_eigenvalues(self):
         if self.K is not None:
             eigvals, eigvecs = sp.linalg.eigh(self.K,
-                                              eigvals=(num_samples-self.J, num_samples-1))
+                                              eigvals=(self.num_samples-self.J, self.num_samples-1))
 
             idx_sort = np.argsort(eigvals)[::-1]
 
@@ -269,7 +269,7 @@ class SSGE:
 
         matmul = K @ us
 
-        matmul = np.sqrt(num_samples) * matmul / lambdas
+        matmul = np.sqrt(self.num_samples) * matmul / lambdas
 
 
         b = self.betas[:, :j]
@@ -313,6 +313,7 @@ if __name__ == '__main__':
     x = np.linspace(-5, 5, num_samples)
 
     X = np.random.randn(num_samples, 1)
+    print("X shape", X.shape)
     #X = pd.read_csv("./data/paper_toy.csv", header=None).values
 
     print(X.shape)
@@ -328,11 +329,11 @@ if __name__ == '__main__':
     # vals = []
     # for xx in x:
     #     vals.append(ssge.gradient_estimate(num_eigvecs, np.array([xx])))
-
-    #print(ssge.eigvals)
-    #print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
-
-    # total_squared_error_vec = (np.array(vals) - np.array([normal_log_density_deriv(x)]).T) ** 2
+    #
+    # # print(ssge.eigvals)
+    # # print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
+    #
+    # total_squared_error_vec = (np.array(g) - np.array([normal_log_density_deriv(x)]).T) ** 2
     # MSE = np.mean(total_squared_error_vec)
     # print(f'MSE: {MSE}')
 
