@@ -308,7 +308,7 @@ class SSGE:
 
 if __name__ == '__main__':
     num_eigvecs = 6
-    num_samples = 10000
+    num_samples = 1000
 
     x = np.linspace(-5, 5, num_samples)
 
