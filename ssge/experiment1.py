@@ -8,11 +8,10 @@ import jax.numpy as jnp
 from jax.scipy import stats as jsps
 from jax import grad, vmap
 
+import matplotlib.pyplot as plt
 import numpy as np
 
 
-
-import matplotlib.pyplot as plt
 
 def gmm_pdf(x, weights, mus, sigmas):
 
@@ -75,48 +74,6 @@ def main():
 
     plt.show()
     plt.close()
-
-
-
-
-    # num_eigvecs = 6
-    # num_samples = 1000
-
-    # x = np.linspace(-5, 5, num_samples)
-
-    # X = np.random.randn(num_samples, 1)
-    # #X = pd.read_csv("./data/paper_toy.csv", header=None).values
-
-    # print(X.shape)
-    # ssge = SSGE(X,
-    #             g=x.reshape(-1, 1),
-    #             J=num_eigvecs,
-    #             width_rule='heuristic3',
-    #             r=0.99999)
-
-    # g = ssge.gradient_estimate_vectorized(num_eigvecs,
-    #                                       x.reshape(-1, 1))
-
-    # # vals = []
-    # # for xx in x:
-    # #     vals.append(ssge.gradient_estimate(num_eigvecs, np.array([xx])))
-
-    # #print(ssge.eigvals)
-    # #print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
-
-    # fig, ax = plt.subplots(1,1)
-
-
-    # ax.plot(x, normal_log_density(x))
-    # ax.plot(x, normal_log_density_deriv(x))
-    # #ax.plot(x, vals)
-    # ax.plot(x, g)
-
-    # ax.scatter(X.flatten(), np.zeros(num_samples).flatten(), marker='x')
-
-
-    # plt.show()
-    # plt.close() 
 
 
 if __name__ == '__main__':
