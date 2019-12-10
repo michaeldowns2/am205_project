@@ -4,22 +4,27 @@
 
 from ssge import SSGE
 
+import jax.numpy as jnp
+from jax.scipy import stats as jsps
+from jax import grad, vmap
+
 import matplotlib.pyplot as plt
 import numpy as np
-import scipy.stats as sps
+
+
 
 def gmm_pdf(x, weights, mus, sigmas):
 
     pdfval = 0
 
     for weight, mu, sigma in zip(weights, mus, sigmas):
-        pdfval += weight * sps.norm(mu, sigma).pdf(x)
-
+        pdfval = pdfval + weight * jsps.norm.pdf(x, mu, sigma)
 
     return pdfval
 
-def gmm_grad_log_density(x, weights, mus, sigmas):
-    pass
+
+def log_gmm_pdf(x, weights, mus, sigmas):
+    return jnp.log(gmm_pdf(x, weights, mus, sigmas))
 
 def sample_gmm(num_samples, weights, mus, sigmas):
     num_pdfs = len(weights)
@@ -43,7 +48,7 @@ def main():
     # Generate bimodal samples
     num_samples = 100
     weights = [0.3, 0.7]
-    mus = [-3, 4]
+    mus = [-4, 4]
     sigmas = [1, 1]
 
     samples = sample_gmm(num_samples=num_samples,
@@ -51,7 +56,7 @@ def main():
                          mus=mus,
                          sigmas=sigmas)
 
-    print(samples)
+    deriv_grad_log_density = grad(log_gmm_pdf, 0)
 
     # Generate SSGE
     num_eigvecs = 4
@@ -71,17 +76,18 @@ def main():
 
 
     # Plot everything
-    fig, ax = plt.subplots(1,1)
-
-    ax.plot(x, gmm_pdf(x, weights, mus, sigmas), label='pdf')
-    ax.scatter(samples, np.zeros(num_samples))
-    ax.plot(x, g, label="Our SSGE")
-
-    ax.set_ylim([-6, 6])
-
-    plt.legend()
-    plt.show()
-    plt.close()
+    # fig, ax = plt.subplots(1,1)
+    #
+    #
+    # ax.plot(x, gmm_pdf(x, weights, mus, sigmas), label='pdf')
+    # ax.scatter(samples, np.zeros(num_samples))
+    # ax.plot(x, g, label="Our SSGE")
+    #
+    # ax.set_ylim([-6, 6])
+    #
+    # plt.legend()
+    # plt.show()
+    # plt.close()
 
 
     #    num_eigvecs = 6
@@ -147,29 +153,24 @@ def main():
     # g = ssge.gradient_estimate_vectorized(num_eigvecs,
     #                                       x.reshape(-1, 1))
 
-    # # vals = []
-    # # for xx in x:
-    # #     vals.append(ssge.gradient_estimate(num_eigvecs, np.array([xx])))
 
-    # #print(ssge.eigvals)
-    # #print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
+    x = jnp.linspace(-10, 10, 1000)
+    ax.plot(x, gmm_pdf(x, weights, mus, sigmas),
+            label='Analytic PDF')
 
-    # fig, ax = plt.subplots(1,1)
+    deriv_func = lambda x: deriv_grad_log_density(x, weights, mus, sigmas)
+    ax.plot(x, list(map(deriv_func, x)), label='Analytic Density')
+
+    ax.scatter(samples, np.zeros(num_samples),
+               color='red',
+               marker='x',
+               label='Samples')
+
+    ax.legend()
+
+    plt.show()
+    plt.close()
 
 
-    # ax.plot(x, normal_log_density(x))
-    # ax.plot(x, normal_log_density_deriv(x))
-    # #ax.plot(x, vals)
-    # ax.plot(x, g)
-
-    # ax.scatter(X.flatten(), np.zeros(num_samples).flatten(), marker='x')
-
-
-    # plt.show()
-    # plt.close() 
-
-# if __name__== '__main__':
-#     main()
-#
 if __name__ == '__main__':
     main()
