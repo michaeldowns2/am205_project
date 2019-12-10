@@ -3,8 +3,9 @@
 """
 
 from ssge import SSGE
-
 import numpy as np
+import matplotlib.pyplot as plt
+
 
 def gmm_pdf(x, weights, mus, sigmas):
     pass
@@ -80,6 +81,50 @@ def main():
     # plt.show()
     # plt.close() 
 
-
+# if __name__== '__main__':
+#     main()
+#
 if __name__ == '__main__':
-    main()
+    num_eigvecs = 6
+    num_samples = 1000
+
+    x = np.linspace(-5, 5, num_samples)
+
+    X = np.random.randn(num_samples, 1)
+    #X = pd.read_csv("./data/paper_toy.csv", header=None).values
+
+    print(X.shape)
+    ssge = SSGE(X,
+                g=x.reshape(-1, 1),
+                J=num_eigvecs,
+                width_rule='heuristic3',
+                r=0.99999)
+
+    g = ssge.gradient_estimate_vectorized(num_eigvecs,
+                                          x.reshape(-1, 1))
+
+    # vals = []
+    # for xx in x:
+    #     vals.append(ssge.gradient_estimate(num_eigvecs, np.array([xx])))
+
+    #print(ssge.eigvals)
+    #print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
+
+    # total_squared_error_vec = (np.array(vals) - np.array([normal_log_density_deriv(x)]).T) ** 2
+    # MSE = np.mean(total_squared_error_vec)
+    # print(f'MSE: {MSE}')
+
+
+    fig, ax = plt.subplots(1,1)
+
+
+    ax.plot(x, normal_log_density(x), label="Log density")
+    ax.plot(x, normal_log_density_deriv(x), label="Log density deriv")
+    #ax.plot(x, vals)
+    ax.plot(x, g, label="Our SSGE")
+
+    ax.scatter(X.flatten(), np.zeros(num_samples).flatten(), marker='x')
+
+    plt.legend()
+    plt.show()
+    plt.close()
