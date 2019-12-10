@@ -4,22 +4,28 @@
 
 from ssge import SSGE
 
-import matplotlib.pyplot as plt
+import jax.numpy as jnp
+from jax.scipy import stats as jsps
+from jax import grad, vmap
+
 import numpy as np
-import scipy.stats as sps
+
+
+
+import matplotlib.pyplot as plt
 
 def gmm_pdf(x, weights, mus, sigmas):
 
     pdfval = 0
 
     for weight, mu, sigma in zip(weights, mus, sigmas):
-        pdfval += weight * sps.norm(mu, sigma).pdf(x)
-
+        pdfval = pdfval + weight * jsps.norm.pdf(x, mu, sigma)
 
     return pdfval
 
-def gmm_grad_log_density(x, weights, mus, sigmas):
-    pass
+
+def log_gmm_pdf(x, weights, mus, sigmas):
+    return jnp.log(gmm_pdf(x, weights, mus, sigmas))
 
 def sample_gmm(num_samples, weights, mus, sigmas):
     num_pdfs = len(weights)
@@ -35,13 +41,10 @@ def sample_gmm(num_samples, weights, mus, sigmas):
     return masked_samples.sum(axis=1).flatten()
 
 
-
-
-
 def main():
     num_samples = 100
     weights = [0.3, 0.7]
-    mus = [-3, 4]
+    mus = [-4, 4]
     sigmas = [1, 1]
 
 
@@ -50,14 +53,25 @@ def main():
                          mus=mus,
                          sigmas=sigmas)
 
-    print(samples)
+    deriv_grad_log_density = grad(log_gmm_pdf, 0)
 
     fig, ax = plt.subplots(1,1)
 
-    x = np.linspace(-10, 10, 1000)
-    ax.plot(x, gmm_pdf(x, weights, mus, sigmas), label='pdf')
-    ax.scatter(samples, np.zeros(num_samples))
+    
 
+    x = jnp.linspace(-10, 10, 1000)
+    ax.plot(x, gmm_pdf(x, weights, mus, sigmas),
+            label='Analytic PDF')
+
+    deriv_func = lambda x: deriv_grad_log_density(x, weights, mus, sigmas)
+    ax.plot(x, list(map(deriv_func, x)), label='Analytic Density')
+
+    ax.scatter(samples, np.zeros(num_samples),
+               color='red',
+               marker='x',
+               label='Samples')
+
+    ax.legend()
 
     plt.show()
     plt.close()
