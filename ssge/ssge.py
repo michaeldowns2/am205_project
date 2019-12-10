@@ -332,17 +332,22 @@ if __name__ == '__main__':
     #print(ssge.eigvals)
     #print(np.cumsum(ssge.eigvals)/np.sum(ssge.eigvals))
 
+    # total_squared_error_vec = (np.array(vals) - np.array([normal_log_density_deriv(x)]).T) ** 2
+    # MSE = np.mean(total_squared_error_vec)
+    # print(f'MSE: {MSE}')
+
+
     fig, ax = plt.subplots(1,1)
 
 
-    ax.plot(x, normal_log_density(x))
-    ax.plot(x, normal_log_density_deriv(x))
+    ax.plot(x, normal_log_density(x), label="Log density")
+    ax.plot(x, normal_log_density_deriv(x), label="Log density deriv")
     #ax.plot(x, vals)
-    ax.plot(x, g)
+    ax.plot(x, g, label="Our SSGE")
 
     ax.scatter(X.flatten(), np.zeros(num_samples).flatten(), marker='x')
 
-
+    plt.legend()
     plt.show()
     plt.close() 
 
