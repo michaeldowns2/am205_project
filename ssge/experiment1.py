@@ -3,12 +3,20 @@
 """
 
 from ssge import SSGE
-import numpy as np
-import matplotlib.pyplot as plt
 
+import matplotlib.pyplot as plt
+import numpy as np
+import scipy.stats as sps
 
 def gmm_pdf(x, weights, mus, sigmas):
-    pass
+
+    pdfval = 0
+
+    for weight, mu, sigma in zip(weights, mus, sigmas):
+        pdfval += weight * sps.norm(mu, sigma).pdf(x)
+
+
+    return pdfval
 
 def gmm_grad_log_density(x, weights, mus, sigmas):
     pass
@@ -31,13 +39,28 @@ def sample_gmm(num_samples, weights, mus, sigmas):
 
 
 def main():
+    num_samples = 100
+    weights = [0.3, 0.7]
+    mus = [-3, 4]
+    sigmas = [1, 1]
+
 
     samples = sample_gmm(num_samples=100,
-                         weights=[0.3, 0.7],
-                         mus=[-3, 4],
-                         sigmas=[0.5, 2])
+                         weights=weights,
+                         mus=mus,
+                         sigmas=sigmas)
 
     print(samples)
+
+    fig, ax = plt.subplots(1,1)
+
+    x = np.linspace(-10, 10, 1000)
+    ax.plot(x, gmm_pdf(x, weights, mus, sigmas), label='pdf')
+    ax.scatter(samples, np.zeros(num_samples))
+
+
+    plt.show()
+    plt.close()
 
 
 
