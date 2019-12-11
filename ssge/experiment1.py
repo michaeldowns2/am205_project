@@ -1,14 +1,13 @@
 """
-1D multimodal distribution
+In this experiment, we assess how well the
+SSGE performs for a 1D Gaussian Mixture as we vary different
+Gaussian Mixture parameters
 """
 
 from ssge import SSGE
 
-import jax.numpy as jnp
-from jax.scipy import stats as jsps
-from jax import grad, vmap
-
 import matplotlib.pyplot as plt
+
 import numpy as np
 
 
@@ -40,7 +39,7 @@ def sample_gmm(num_samples, weights, mus, sigmas):
     print("ALL_SAMPLES", all_samples)
     masked_samples = mask * all_samples
 
-    return masked_samples.sum(axis=1).flatten()
+
 
 
 def main():
@@ -158,8 +157,9 @@ def main():
     ax.plot(x, gmm_pdf(x, weights, mus, sigmas),
             label='Analytic PDF')
 
+    print("jax")
     deriv_func = lambda x: deriv_grad_log_density(x, weights, mus, sigmas)
-    ax.plot(x, list(map(deriv_func, x)), label='Analytic Density')
+    ax.plot(x, list(map(deriv_func, x)), label='Analytic GLD')
 
     ax.scatter(samples, np.zeros(num_samples),
                color='red',
