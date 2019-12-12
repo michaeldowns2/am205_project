@@ -39,7 +39,8 @@ class SSGE:
                  width_rule='heuristic3',
                  recompute_width=False,
                  width=None,
-                 r=0.99):
+                 r=0.99,
+                 verbose=0):
 
         self.K = None
         self.eigvals = None
@@ -56,20 +57,20 @@ class SSGE:
 
         self.num_samples, self.dim = X.shape
 
-        print("Computing gram matrix")
+        if verbose > 0: print("Computing gram matrix")
         self.__compute_gram()
 
-        print("Computing eigenvalues / vectors of gram matrix")
+        if verbose > 0: print("Computing eigenvalues / vectors of gram matrix")
         self.__compute_eigenvalues()
 
-        print("Computing J")
+        if verbose > 0: print("Computing J")
         self.__get_J()
-        print(f"J: {self.J}")
+        if verbose > 0: print(f"J: {self.J}")
 
-        print("Determining mus / psis")
+        if verbose > 0: print("Determining mus / psis")
         self.__get_psis_mus()
 
-        print("Determining betas")
+        if verbose > 0: print("Determining betas")
         self.__get_betas_vectorized()
 
 
@@ -364,10 +365,6 @@ class SSGE:
 
 
         b = self.betas[:, :j]
-
-        print(matmul.shape)
-        print(b.T.shape)
-
 
         # this is doing the computation for equation 16 simultaneously
         # on all input data points
