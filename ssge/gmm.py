@@ -1,5 +1,4 @@
 import random
-
 import jax.numpy as jnp
 from jax.scipy import stats as jsps
 from jax import grad, vmap
@@ -9,6 +8,9 @@ import scipy as sp
 from ssge import *
 
 
+# Sets random seed. If an experiment also sets the random seed,
+# this will be overwritten
+# (as long as their imports are at the top of the file)
 np.random.seed(20)
 random.seed(20)
 
@@ -45,7 +47,14 @@ def mvn_pdf_vectorized(x, mu, sigma):
 
     return term1 * term2 * term3 
 
-
+"""
+For the below functions:
+weights: the weight on each mode. Sum cannot exceed 1
+mus: list of means
+sigmas: list of covariance matrices
+* weights, mus and sigmas must have same length
+"""
+# Outputs function for the gmm PDF
 def gmm_pdf(weights, mus, sigmas):
     def p(x):
 
@@ -58,6 +67,7 @@ def gmm_pdf(weights, mus, sigmas):
 
     return p
 
+# Vectorized version of gmm pdf
 def gmm_pdf_vectorized(weights, mus, sigmas):
     def p(x):
 
@@ -70,13 +80,14 @@ def gmm_pdf_vectorized(weights, mus, sigmas):
 
     return p
 
+# Finite differences function to check the analytic GLD
 def finite_diff(g, h, weights, mus, sigmas):
     def f(x):
         return (g(x + h, weights, mus, sigmas) - g(x, weights, mus, sigmas))/h
 
     return f
 
-
+# Outputs function for log of the PDF
 def log_gmm_pdf(weights, mus, sigmas):
     p = gmm_pdf(weights, mus, sigmas)
 
@@ -85,6 +96,7 @@ def log_gmm_pdf(weights, mus, sigmas):
 
     return logp
 
+# Vectorized version of log gmm pdf
 def log_gmm_pdf_vectorzed(weights, mus, sigmas):
     p = gmm_pdf_vectorized(weights, mus, sigmas)
 
@@ -93,7 +105,9 @@ def log_gmm_pdf_vectorzed(weights, mus, sigmas):
 
     return logp
 
+# Outputs log likelihood of gmm
 def log_lik_gmm(weights, mus, sigmas ):
+
     p = gmm_pdf_vectorized(weights, mus, sigmas)
 
     def log_lik(x):
@@ -101,18 +115,16 @@ def log_lik_gmm(weights, mus, sigmas ):
 
     return log_lik
 
-
+# Produces analytic gradient log density for gmm
 def gmm_gld(weights, mus, sigmas):
+
     logp = log_gmm_pdf(weights, mus, sigmas)
 
     return vmap(grad(logp))
 
-
+# Produces samples from gmm
 def sample_gmm(num_samples, weights, mus, sigmas):
-    """
-    mus: list of means
-    sigmas: list of covariance matrices
-    """
+
     num_pdfs = len(weights)
 
     result = []
@@ -158,7 +170,7 @@ if __name__ == '__main__':
                 r=0.99999)
     g = ssge.gradient_estimate_vectorized(num_eigvecs, xs.reshape(-1, 1))
 
-    # enerate analytic GLD
+    # Generate PDF and analytic GLD
     pdf = gmm_pdf_vectorized(weights, mus, sigmas)
     gld = gmm_gld(weights, mus, sigmas)
 
