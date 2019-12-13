@@ -376,9 +376,8 @@ class SSGE:
 
         return g
 
-        
-
-
+    def neg_gradient_estimate_vectorized(self, j, x):
+        return -1*self.gradient_estimate_vectorized(j, x)
 
     def gradient_estimate(self, j, x):
         if j is None:

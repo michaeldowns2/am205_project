@@ -9,8 +9,8 @@ import scipy as sp
 
 
 
-np.random.seed(205)
-random.seed(205)
+#np.random.seed(205)
+#random.seed(205)
 
 def mvn_pdf(x, mu, sigma):
     k = len(mu)
@@ -69,7 +69,6 @@ def gmm_pdf_vectorized(weights, mus, sigmas):
 
     return p
 
-
 def finite_diff(g, h, weights, mus, sigmas):
     def f(x):
         return (g(x + h, weights, mus, sigmas) - g(x, weights, mus, sigmas))/h
@@ -84,6 +83,23 @@ def log_gmm_pdf(weights, mus, sigmas):
         return jnp.log(p(x))
 
     return logp
+
+def log_gmm_pdf_vectorzed(weights, mus, sigmas):
+    p = gmm_pdf_vectorized(weights, mus, sigmas)
+
+    def logp(x):
+        return jnp.log(p(x))
+
+    return logp
+
+def log_lik_gmm(weights, mus, sigmas ):
+    p = gmm_pdf_vectorized(weights, mus, sigmas)
+
+    def log_lik(x):
+        return jnp.sum(jnp.log(p(x)))
+
+    return log_lik
+
 
 def gmm_gld(weights, mus, sigmas):
     logp = log_gmm_pdf(weights, mus, sigmas)
