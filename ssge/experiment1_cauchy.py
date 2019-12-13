@@ -1,3 +1,8 @@
+"""
+In this experiment, we test the SSGE's
+performance on the pathological case of
+the Cauchy distribution.
+"""
 
 import numpy as np
 import random
@@ -8,9 +13,11 @@ import matplotlib.pyplot as plt
 from scipy.stats import cauchy
 import jax.random as jrand
 
+# Set random seed
 np.random.seed(200)
 random.seed(200)
 
+# Function to sample from a Cauchy distribution
 def sample_cauchy(num_samples):
     """
     """
@@ -18,7 +25,7 @@ def sample_cauchy(num_samples):
 
     return np.array([result]).T
 
-
+# Function for the analytic solution of the Cauchy GLD
 def cauchy_gld(x_vec):
 
     output_vec = (-2*x_vec) / (1 + x_vec**2)
@@ -32,9 +39,10 @@ if __name__ == '__main__':
     num_samples = 500
     samples = sample_cauchy(num_samples=num_samples)
 
+    # Generate plot x-axis
     xs = jnp.linspace(-10, 10, num_samples)
 
-    # Generate SSGE
+    # Generate SSGE (with selected number of eigenfunctions)
     num_eigvecs = 25
     ssge = SSGE(samples,
                 g=xs.reshape(-1, 1),
@@ -42,7 +50,6 @@ if __name__ == '__main__':
                 width_rule='heuristic3',
                 r=0.99999)
     g = ssge.gradient_estimate_vectorized(num_eigvecs, xs.reshape(-1, 1))
-
 
     # Generate PDF and GLD
     cauchy_pdf = cauchy.pdf(xs.reshape(-1, 1))

@@ -1,3 +1,8 @@
+"""
+In this experiment, we test the SSGE's
+performance on the pathological case of
+the Cauchy distribution.
+"""
 
 import numpy as np
 import random
@@ -8,16 +13,20 @@ import matplotlib.pyplot as plt
 from scipy.stats import triang
 import jax.random as jrand
 
+# Set random seed
 np.random.seed(200)
 random.seed(200)
 
+# Function to generate samples from a triangular distribution
+# centered at 0, with the left vertex at -1 and the right vertex at 1.
+
+# *Ensure the parameters given here produce the same distribution as
+# the PDF generated using the parameters given
+# to the  triang.pdf and triang.logpdf functions below
+
+# **the parameters in each case refer to different values, so they will be different
 def sample_triangle(num_samples):
-    """
-    ======
-    CHECK THE PARAMS of the SAMPLING fn and the PDF/GLD PLOTTING fn!
-    (They have diff params so need to make sure all is in order)
-    ======
-    """
+
     result = np.random.triangular(-1, 0, 1, num_samples)
 
     return np.array([result]).T
@@ -29,10 +38,11 @@ if __name__ == '__main__':
     num_samples = 500
     samples = sample_triangle(num_samples=num_samples)
 
-    xs = jnp.linspace(-0.99999999, 0.99999999, num_samples)
+    # Generate plot x-axis
+    # Using (-1, 1) here will result in an MSE of inf
+    xs = jnp.linspace(-0.9999, 0.9999, num_samples)
 
-    print("INPUT SAMPLES SHAPE", samples.shape)
-    # Generate SSGE
+    # Generate SSGE (with selected number of eigenfunctions)
     num_eigvecs = 5
     ssge = SSGE(samples,
                 g=xs.reshape(-1, 1),
@@ -43,6 +53,7 @@ if __name__ == '__main__':
 
 
     # Generate PDF and GLD
+    # (Ensure PDF here correspond to same as sampling from above)
     triang_pdf = triang.pdf(xs.reshape(-1, 1), c=0.5, loc=-1, scale=2)
     triang_gld = triang.logpdf(xs, c=0.5, loc=-1, scale=2)
 

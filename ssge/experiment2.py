@@ -65,25 +65,28 @@ def main():
               jnp.eye(1),
               jnp.eye(1)]
 
+    # Draw samples from the distribution
     samples = sample_gmm(num_samples=num_samples,
                          weights=weights,
                          mus=mus,
                          sigmas=sigmas)
 
 
+    # Define x-axis points
     xs = jnp.linspace(-10, 10, num_samples)
 
-    # Generate SSGE
+    # Generate SSGE (with selected number of eigenfunctions)
     num_eigvecs = 15
-    print("INPUT SAMPLES SHAPE", samples.shape)
     ssge = SSGE(samples,
                 g=xs.reshape(-1, 1),
                 J=num_eigvecs,
                 width_rule='heuristic3',
                 r=0.99999)
+
+    # Generate SSGE GLD estimate
     g = ssge.gradient_estimate_vectorized(num_eigvecs, xs.reshape(-1, 1))
 
-    # Generate analytic GLD
+    # Generate PDF and analytic GLD
     pdf = gmm_pdf_vectorized(weights, mus, sigmas)
     gld = gmm_gld(weights, mus, sigmas)
     gld_vals = gld(xs)
@@ -108,6 +111,7 @@ def main():
     fig.tight_layout()
     plt.legend(loc='upper right', fontsize=14)
 
+    # Uncomment this to plot PDF on its own mini-plot within larger plot
     # inner_ax = fig.add_axes([0.15, 0.1, 0.33, 0.15])
     # inner_ax.plot(xs, pdf(xs.reshape(-1, 1)), label='PDF')
     # inner_ax.scatter(samples.flatten(), np.zeros(num_samples),
