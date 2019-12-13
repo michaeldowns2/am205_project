@@ -10,19 +10,24 @@ import random
 import matplotlib.pyplot as plt
 import numpy as np
 
-
+# Set random seed for our sampling method
 random.seed(205)
 np.random.seed(205)
 
+
 if __name__ == '__main__':
-    num_eigvecs = 4
+    # Select the number of eigenfunctions and samples
+    # For their data, the optimal number of eigenfunctions is 6
+    num_eigvecs = 6
     num_samples = 100
 
+    # Select the range over which to find the PDF, analytic GLD, and SSGE GLD
     x = np.linspace(-5, 5, num_samples)
 
+
+    # Here we set the sample data. If using their implementation, use 'their_samples'
+    # If using a random distribution, use the np.random.randn function
     # X = np.random.randn(num_samples, 1)
-    # print("X shape", X.shape)
-    # X = pd.read_csv("./data/paper_toy.csv", header=None).values
     their_samples = np.array([[-3.0937572,  -2.4878414,  -1.9405675,  -1.9271216,  -1.7462497,  -1.7278725,
          -1.7150725,  -1.5986868,  -1.4967151,  -1.3978306,  -1.348662,   -1.3055072,
          -1.2018663,  -1.1910279,  -1.1683466,  -1.1633193,  -1.0130662,  -0.9944531,
@@ -41,6 +46,8 @@ if __name__ == '__main__':
          1.3322248,   1.3528007,   1.3617909,   1.5121077,   1.8851165,   2.1025054,
          2.2576284,   2.3658423,   2.5456474,   2.711842]]).T
 
+
+    # Use this to calculate the MSE between our SSGE implementation and theirs
     their_stein_result = np.array([4.84420156e+00,  4.84092236e+00,  4.81947899e+00,  4.78003168e+00,
                            4.72299194e+00,  4.64898872e+00,  4.55888891e+00,  4.45376396e+00,
                            4.33489370e+00,  4.20373869e+00,  4.06189299e+00,  3.91110778e+00,
@@ -67,23 +74,30 @@ if __name__ == '__main__':
                            -3.41152787e+00, -3.44364524e+00, -3.46452522e+00, -3.47380543e+00,
                            -3.47126341e+00, -3.45684505e+00, -3.43063116e+00, -3.39286232e+00])
 
+    # create an instantiation of the ssge class
     ssge = SSGE(their_samples,
                 g=x.reshape(-1, 1),
                 J=num_eigvecs,
                 width_rule='heuristic3',
                 r=0.99999)
 
+    # get the SSGE estimate for the gradient log density (GLD)
     g = ssge.gradient_estimate_vectorized(num_eigvecs,
                                           x.reshape(-1, 1))
 
 
+    # Calculate the MSE between the analytic solution and our SSGE estimate
     sq_error = (g - normal_log_density_deriv(x))**2
     MSE = np.mean(sq_error)
     print(f'MSE: {MSE}')
 
+    # Calculate the MSE between the two SSGE implementations
     result_sq_error = (g - their_stein_result)**2
     result_MSE = np.mean(result_sq_error)
     print(f'MSE between our SSGE and theirs: {result_MSE}')
+
+
+    # Plot results
 
     plt.style.use('seaborn-darkgrid')
     fig, ax = plt.subplots(1,1)
