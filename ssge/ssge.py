@@ -39,7 +39,8 @@ class SSGE:
                  width_rule='heuristic3',
                  recompute_width=False,
                  width=None,
-                 r=0.99):
+                 r=0.99,
+                 verbose=0):
 
         self.K = None
         self.eigvals = None
@@ -56,20 +57,20 @@ class SSGE:
 
         self.num_samples, self.dim = X.shape
 
-        print("Computing gram matrix")
+        if verbose > 0: print("Computing gram matrix")
         self.__compute_gram()
 
-        print("Computing eigenvalues / vectors of gram matrix")
+        if verbose > 0: print("Computing eigenvalues / vectors of gram matrix")
         self.__compute_eigenvalues()
 
-        print("Computing J")
+        if verbose > 0: print("Computing J")
         self.__get_J()
-        print(f"J: {self.J}")
+        if verbose > 0: print(f"J: {self.J}")
 
-        print("Determining mus / psis")
+        if verbose > 0: print("Determining mus / psis")
         self.__get_psis_mus()
 
-        print("Determining betas")
+        if verbose > 0: print("Determining betas")
         self.__get_betas_vectorized()
 
 
@@ -221,21 +222,90 @@ class SSGE:
         return b_j
 
     def __get_betas_vectorized(self):
+        """
+        Suppose that X is of dimensionality Mxn (M data points of
+        dimensionality n)
+        The result of this function is an i x j matrix of the SSGE betas
+        where the ijth element corresponds to the beta for the ith partial
+        derivative for the jth psi (eigenfunction estimate)
+
+        """
+
+        # The computation for the ijth beta involves averaging
+        # the ith partial derivative of the estimated jth psi over all M
+        # data points. The derivative of the jth psi estimate is taken
+        # on the kernel function (see (6)). The partial derivative of
+        # the ith x for the rbf kernel is
+        # (-1./self.width**2 * (x_i - xm_i)) * rbf(x, xm)
+        # the line below simultaneously computes all (x_i - xm_i)
+        # for all sampled data points used in constructing the
+        # SSGE estimate.
+
+        # self.X[:, np.newaxis] yields a 3d numpy array of dimensionality
+        # (Mx1xn)
+        # self.X[:, np.newaxis] - 1 yields a 3d numpy array of dimensionality
+        # (MxMx2) where the cross section [k, :, :] yields
+        # the result of broadcasting subtraction of X from
+        # the kth data point. Imagining this array as a
+        # 3D rectangle This cross section corresponds to  the
+        # first square on the vertical stack of squares
+
+        # the 1D cross section [0, 0, :] (should be all zeros) because
+        # this corresponds to the first data point subtracted from
+        # itself. imagine taking your left pointer finger and placing it
+        # on the left side of the top part of the 3d rectangle. that's what
+        # this cross section would correspond to. 
         broadcasted_subtraction = self.X[:, np.newaxis] - self.X
+
+        # we would like the cross section [:, :, k] to correspond to
+        # the broadcasted subtraction above and this can be achieved through
+        # rotating the 3D numpy array twice 90 degrees around two
+        # different axes
+
+        # the first rotation involves taking the 3D rectangle and rotating
+        # it clockwise around the axis normal to the XY plane
+        # (imagine rotating the y unit vector into the x unit vector)
+        # we then want to rotate it 90 degrees counterclockwise around the
+        # axis normal to the YZ plane (imagine rotating tbe y unit vector into
+        # the z unit vector)
+        # that's what the two rotations below are doing
 
         broadcasted_subtraction = np.rot90(broadcasted_subtraction, axes=(2, 1))
         broadcasted_subtraction = np.rot90(broadcasted_subtraction, axes=(0, 2))
 
-        # result of this is a three dimensional array where
-        # each 2d cross section k through the third dimension is the result of
-        # broadcasting row-rise the subtraction of all data points from the
-        # kth data point
+        # we now have a 3D numpy array where the cross section [:, :, k]
+        # is the broadcasted operation of subtracting X from the
+        # kth data point.
+
+
+        # we then need to broadcast the kernel matrix to the above matrix
+        # this can be achieved by rotating the 2D kernel matrix
+        # counterclockwise around an axis normal to the XY plane
+        # and then broadcasting multiplicating of each
+        # 1D cross section oF the rotated K into each 2D cross section of
+        # the matrix with the broadcasted subtractions.
+        # element (i, 1, j) of the now rotated K contains
+        # the kernel computation K(x_i, x_j)
         
         broadcasted_multiplication = self.K.reshape(self.num_samples, 1, self.num_samples) \
                                      * broadcasted_subtraction
 
+        # we then broadcast multiply the scalar -1. / self.width**2
+        # to obtain the matrix that has all partial derivatives for the kernel
+        # across all data points.
         partials_matrix = -1./self.width**2 * broadcasted_multiplication
 
+
+        
+
+        # the equation below corresponds to performing the sum product
+        # of the eigvenvector u with the vector where each element is
+        # a kernel computation between an arbitrary x and the
+        # mth data point. reference equation 6.
+
+        # the result is a 3D numpy array where the i j kth element corresponds
+        # to the ith partial derivative of the kth eigenvector estimate
+        # of the jth sample point in the data
 
         # (dim, num_samples, num_samples)
         # (i, j, k)
@@ -244,8 +314,11 @@ class SSGE:
                                                     self.eigvecs, axes=((0),
                                                                         (0)))
 
+        # this is just broadcasting the appropriate coefficients in equation 6
         psihats = np.sqrt(self.num_samples) * Kgrad_eigvecs_tensor_product / self.eigvals
 
+        # this is taking the mean across the samples to yield the beta matrix
+        # see euqation (17)
         betas = -1 * np.mean(psihats, axis=1)
 
         self.betas = betas
@@ -261,12 +334,31 @@ class SSGE:
         if not 1 <= j <= self.num_samples or not isinstance(j, int):
             raise Exception(f"Invalid j. Must be and integer between 1 and {self.num_samples}")
 
+        # this is computing the gradient estimate in (16) after
+        # having determined the betas matrix
+        # this computation involves determining
+        # the jth psi function for j for all input data points
+        # which involves forming a matrix of kernel computations
+
+        # see the documentation for cdist.
+        # basically, takes a collection of points and returns a matrix
+        # where the ijth element is the distance from the
+        # ith point in the first set to the jth point in the second set
         K = spsp.distance.cdist(x, self.X, 'sqeuclidean')
+
+        # perform the RBF kernel computations
         K = np.exp(-1./(2. * self.width**2) * K)
+
+        # we now have a matrix where the ijth element is the
+        # kernel computation of the ith input data point with the
+        # jth sample used to make the SSGE estimate 
+
 
         us = self.eigvecs[:, :j]
         lambdas = self.eigvals[:j]
 
+        # this is performing the sum product in equation (6)
+        # simultaneously for all input samples
         matmul = K @ us
 
         matmul = np.sqrt(self.num_samples) * matmul / lambdas
@@ -274,17 +366,18 @@ class SSGE:
 
         b = self.betas[:, :j]
 
-        print(matmul.shape)
-        print(b.T.shape)
-
-
+        # this is doing the computation for equation 16 simultaneously
+        # on all input data points
         g = matmul @ b.T
 
-        return g.flatten()
+        # the result is a matrix where each row is the estiamte of the
+        # gradient log density at the input point for that row
+        # 
 
-        
+        return g
 
-
+    def neg_gradient_estimate_vectorized(self, j, x):
+        return -1*self.gradient_estimate_vectorized(j, x)
 
     def gradient_estimate(self, j, x):
         if j is None:
