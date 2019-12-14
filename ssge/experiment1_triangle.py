@@ -69,7 +69,6 @@ if __name__ == '__main__':
     # Generate PDF and GLD
     # (Ensure PDF here correspond to same as sampling from above)
     triang_pdf = triang.pdf(xs.reshape(-1, 1), c=0.5, loc=-1, scale=2)
-    #triang_gld = triang.logpdf(xs, c=0.5, loc=-1, scale=2)
     triang_gld = gld_triang(xs)
 
     # Find MSE
