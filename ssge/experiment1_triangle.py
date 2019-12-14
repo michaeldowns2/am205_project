@@ -1,7 +1,7 @@
 """
 In this experiment, we test the SSGE's
 performance on the pathological case of
-the Cauchy distribution.
+the Triangle distribution.
 """
 
 import numpy as np
@@ -31,6 +31,20 @@ def sample_triangle(num_samples):
 
     return np.array([result]).T
 
+def gld_triang(xs):
+    res = []
+    for x in xs.flatten():
+        print(x)
+        if x <= 0:
+            res.append(1/(1+x))
+        else:
+            res.append(-1/(1-x))
+
+    return res
+
+    
+
+
 
 if __name__ == '__main__':
 
@@ -55,7 +69,8 @@ if __name__ == '__main__':
     # Generate PDF and GLD
     # (Ensure PDF here correspond to same as sampling from above)
     triang_pdf = triang.pdf(xs.reshape(-1, 1), c=0.5, loc=-1, scale=2)
-    triang_gld = triang.logpdf(xs, c=0.5, loc=-1, scale=2)
+    #triang_gld = triang.logpdf(xs, c=0.5, loc=-1, scale=2)
+    triang_gld = gld_triang(xs)
 
     # Find MSE
     MSE = np.mean((g - triang_gld) ** 2)
