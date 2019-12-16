@@ -4,7 +4,9 @@ GLD in a sampling procedure that makes use of that quantity
 (Hamiltonian Monte Carlo).
 
 We use log likelihood to assess how likely a set of samples are to come
-from a distribution
+from a distribution.
+
+Not discussed in the writeup because we had enough content as-is.
 """
 
 import time
